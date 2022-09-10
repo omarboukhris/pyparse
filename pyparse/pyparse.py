@@ -4,11 +4,37 @@ import json
 import os.path
 import pathlib
 
+def check_install(verbose: bool = True):
+	pyparse_parent_folder = pathlib.Path(pathlib.Path(__file__).parent)
+	parselib_parent_folder = pathlib.Path(pyparse_parent_folder / "parselibbuild/")
+	parselib_path = pathlib.Path(parselib_parent_folder / "libparselib.so")
+	install_script_path = pathlib.Path(__file__).parent / "parselibInstall.sh"
+
+	if not parselib_path.is_file():
+		print(f"Seems like parselib: '{str(parselib_path)}' is not installed.. installing")
+		with open(install_script_path, "w") as fs:
+			fs.writelines([
+				"#!/bin/bash\n",
+				f"cd {pyparse_parent_folder}\n",
+				"git clone https://github.com/omarboukhris/parselibcpp.git\n",
+				f"mkdir {parselib_parent_folder}\n",
+				f"cd {parselib_parent_folder}\n",
+				"cmake ../parselibcpp\n",
+				"make -j8\n",
+			])
+
+		with os.popen(f"sh {install_script_path}") as pipe:
+			out = pipe.readlines()
+			print("\n".join(out))
+
+		print("Installed parselib")
+		return True
+
 class ParseSession:
 	""" ParseSession Python wrapper of C++ ParseSession
 	"""
-
-	parselib_path = str(pathlib.Path(__file__).parent.parent / "build/libparselib.so")
+	_parselib_exists = check_install()
+	parselib_path = str(pathlib.Path(__file__).parent / "parselibbuild/libparselib.so")
 	parselib = ctypes.cdll.LoadLibrary(parselib_path)
 	parselib.get_json.restype = ctypes.c_char_p
 
